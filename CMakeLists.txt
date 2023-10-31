@@ -14,6 +14,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(SDL2 REQUIRED)
 include_directories(${SDL2_INCLUDE_DIRS})
 
+# Link SDL2_image
+find_library(SDL2_IMAGE_LIBRARY NAMES SDL2_image PATHS /opt/homebrew/lib)
+target_link_libraries(${PROJECT_NAME} ${SDL2_IMAGE_LIBRARY})
+
+
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
         "${PROJECT_SOURCE_DIR}/src/*.cpp"
         )
@@ -21,13 +26,11 @@ file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
 target_include_directories(${PROJECT_NAME}
         PRIVATE ${PROJECT_SOURCE_DIR}/include
         PUBLIC ${PROJECT_SOURCE_DIR}/src
-        PUBLIC /opt/homebrew/Cellar/sdl2/2.28.1/include
-        PUBLIC /opt/homebrew/Cellar/glm/0.9.9.8/include
+        PUBLIC /opt/homebrew/include/SDL2/
         )
 
 
 
 target_link_libraries(${PROJECT_NAME}
         ${SDL2_LIBRARIES}
-
         )

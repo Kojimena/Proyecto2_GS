@@ -1,57 +1,63 @@
 #pragma once
+
+#include <print.h>
+#include <iostream>
+#include <fstream>
+#include <SDL_render.h>
 #include <string>
 #include <vector>
-#include <SDL2/SDL.h>
-#include <fstream>
-#include "color.h"
 #include <cmath>
+#include <SDL2/SDL.h>
+#include <unordered_map>
+#include "color.h"
+#include "imageloader.h"
+
+
+const Color B = {0, 0, 0};
+const Color W = {255, 255, 255};
+
+const int WIDTH = 16;
+const int HEIGHT = 11;
+const int BLOCK = 50;
+const int SCREEN_WIDTH = WIDTH * BLOCK;
+const int SCREEN_HEIGHT = HEIGHT * BLOCK;
+
 
 struct Player {
-    float x;
-    float y;
+    int x;
+    int y;
     float a;
     float fov;
 };
 
-const Color B = {0, 0, 0};
-const Color W = {255, 255, 255};
-const int blockSize = 50;
-const int SCREEN_WIDTH = 1000;
-const int SCREEN_HEIGHT = 1000;
-const int scale = 100;
+struct Impact {
+    float d;
+    std::string mapHit;  // + | -
+    int tx;
+};
 
 class Raycaster {
 public:
     Raycaster(SDL_Renderer* renderer)
             : renderer(renderer) {
 
-        player.x = blockSize + blockSize / 2;  // Posicionando el jugador en el centro de la pantalla
-        player.y = blockSize + blockSize / 2;
+        player.x = BLOCK + BLOCK / 2;
+        player.y = BLOCK + BLOCK / 2;
 
-        player.a = M_PI / 3.0f;
+        player.a = M_PI / 4.0f;
         player.fov = M_PI / 3.0f;
+
+        scale = 50;
+        tsize = 128;
     }
 
-    void circle(int x, int y, int radius, Color c) {
-        SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, c.a);
-        for (int w = 0; w < radius * 2; w++) {
-            for (int h = 0; h < radius * 2; h++) {
-                int dx = radius - w;  // Horizontal offset
-                int dy = radius - h;  // Vertical offset
-                if ((dx*dx + dy*dy) <= (radius * radius)) {
-                    SDL_RenderDrawPoint(renderer, x + dx, y + dy);
-                }
-            }
-        }
-    }
-
-
-    void loadMap(const std::string& filename) {
+    void load_map(const std::string& filename) {
         std::ifstream file(filename);
         std::string line;
-        while (std::getline(file, line)) {
+        while (getline(file, line)) {
             map.push_back(line);
         }
+        file.close();
     }
 
     void point(int x, int y, Color c) {
@@ -59,77 +65,116 @@ public:
         SDL_RenderDrawPoint(renderer, x, y);
     }
 
-    void rect(int x, int y, Color c) {
-        SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, c.a);
-        SDL_Rect rect = {x * blockSize, y * blockSize, blockSize, blockSize};
-        SDL_RenderFillRect(renderer, &rect);
+    void rect(int x, int y, const std::string& mapHit) {
+        for(int cx = x; cx < x + BLOCK; cx++) {
+            for(int cy = y; cy < y + BLOCK; cy++) {
+                int tx = ((cx - x) * tsize) / BLOCK;
+                int ty = ((cy - y) * tsize) / BLOCK;
+
+                Color c = ImageLoader::getPixelColor(mapHit, tx, ty);
+                SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b , 255);
+                SDL_RenderDrawPoint(renderer, cx, cy);
+            }
+        }
     }
 
-    int cast_ray(float a) {
-        int  c = 0;
-        while(true){
-            int x = static_cast<int>(player.x + c * cos(a));
-            int y = static_cast<int>(player.y + c * sin(a));
+    Impact cast_ray(float a) {
+        float d = 0;
+        std::string mapHit;
+        int tx;
 
-            int i= static_cast<int>(x / blockSize);
-            int j= static_cast<int>(y / blockSize);
+        while(true) {
+            int x = static_cast<int>(player.x + d * cos(a));
+            int y = static_cast<int>(player.y + d * sin(a));
 
-            if(map[j][i] != ' '){
-                point(x, y, W);
+            int i = static_cast<int>(x / BLOCK);
+            int j = static_cast<int>(y / BLOCK);
+
+
+            if (map[j][i] != ' ') {
+                mapHit = map[j][i];
+
+                int hitx = x - i * BLOCK;
+                int hity = y - j * BLOCK;
+                int maxhit;
+
+                if (hitx == 0 || hitx == BLOCK - 1) {
+                    maxhit = hity;
+                } else {
+                    maxhit = hitx;
+                }
+
+                tx = maxhit * tsize / BLOCK;
+
                 break;
             }
 
             point(x, y, W);
 
-            c += 10.0f;
-
+            d += 1;
         }
-        return c;
+        return Impact{d, mapHit, tx};
     }
 
-    void draw_Stake(int x,int h, Color c ){
-        int start = (SCREEN_HEIGHT - h) / 2;
-        int end = (SCREEN_WIDTH + h) / 2;
-        SDL_Rect rect = {x, start, 1, end - start};
-        SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, c.a);
+    void draw_stake(int x, float h, Impact i) {
+        float start = SCREEN_HEIGHT/2.0f - h/2.0f;
+        float end = start + h;
 
-        SDL_RenderFillRect(renderer, &rect);
+        for (int y = start; y < end; y++) {
+            int ty = (y - start) * tsize / h;
+            Color c = ImageLoader::getPixelColor(i.mapHit, i.tx, ty);
+            SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, c.a);
 
+            SDL_RenderDrawPoint(renderer, x, y);
+        }
     }
 
     void render() {
-        for (int x = 0; x < SCREEN_WIDTH / blockSize; x++) {
-            for (int y = 0; y < SCREEN_HEIGHT / blockSize; y++) {
-                if (map[y][x] != ' ') {
-                    rect(x, y, W);
+
+        // draw left side of the screen
+
+        for (int x = 0; x < SCREEN_WIDTH; x += BLOCK) {
+            for (int y = 0; y < SCREEN_HEIGHT; y += BLOCK) {
+                int i = static_cast<int>(x / BLOCK);
+                int j = static_cast<int>(y / BLOCK);
+
+                if (map[j][i] != ' ') {
+                    std::string mapHit;
+                    mapHit = map[j][i];
+                    Color c = Color(255, 0, 0);
+                    rect(x, y, mapHit);
                 }
             }
         }
 
-        for (int i = 0; i < SCREEN_WIDTH; i ++) {
-            float a = player.a + player.fov / 2.0f + player.fov * i / static_cast<float>(SCREEN_WIDTH);
+        for (int i = 1; i < SCREEN_WIDTH; i++) {
+            float a = player.a + player.fov / 2 - player.fov * i / SCREEN_WIDTH;
             cast_ray(a);
         }
 
-        for (int i = 0; i < SCREEN_WIDTH; i ++) {
-            float a = player.a + player.fov / 2.0f + player.fov * i / static_cast<float>(SCREEN_WIDTH);
-            int d = cast_ray(a);
+        // draw right side of the screen
+
+        for (int i = 1; i < SCREEN_WIDTH; i++) {
+            double a = player.a + player.fov / 2.0 - player.fov * i / SCREEN_WIDTH;
+            Impact impact = cast_ray(a);
+            float d = impact.d;
+            Color c = Color(255, 0, 0);
+
+            if (d == 0) {
+                print("you lose");
+                exit(1);
+            }
             int x = SCREEN_WIDTH + i;
-            int h = static_cast<int>(SCREEN_HEIGHT / (d * cos(a - player.a)) * scale);
-            draw_Stake(x, h, W);
+            float h = static_cast<float>(SCREEN_HEIGHT)/static_cast<float>(d) * static_cast<float>(scale);
+            draw_stake(x, h, impact);
         }
-
-        draw_Stake(SCREEN_WIDTH+SCREEN_WIDTH/ 2, 500, W);
-
-        circle(player.x, player.y, 5, W);  // Dibujando al jugador como un círculo de radio 5
 
     }
 
-
-
-
     Player player;
 private:
-    SDL_Renderer *renderer;
+    int scale;
+    SDL_Renderer* renderer;
     std::vector<std::string> map;
+    int tsize;
 };

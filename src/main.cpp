@@ -1,30 +1,54 @@
 #include <SDL2/SDL.h>
+#include <SDL_events.h>
 #include <SDL_render.h>
 #include <SDL_video.h>
-#include <iostream>
+#include <print.h>
+
 #include "color.h"
-#include "rc.h"  // Asumo que rc.h es donde definiste la clase Raycaster
+#include "imageloader.h"
+#include "rc.h"
 
 SDL_Window* window;
 SDL_Renderer* renderer;
 
 void clear() {
-    SDL_SetRenderDrawColor(renderer, B.r, B.g, B.b, B.a);
+    SDL_SetRenderDrawColor(renderer, 56, 56, 56, 255);
     SDL_RenderClear(renderer);
 }
 
+void draw_floor() {
+    // floor color
+    SDL_SetRenderDrawColor(renderer, 112, 122, 122, 255);
+    SDL_Rect rect = {
+            SCREEN_WIDTH,
+            SCREEN_HEIGHT / 2,
+            SCREEN_WIDTH,
+            SCREEN_HEIGHT / 2
+    };
+    SDL_RenderFillRect(renderer, &rect);
+}
+
 int main() {
-    std::cout << "Hello, World!" << std::endl;
+    print("hello world");
+
     SDL_Init(SDL_INIT_VIDEO);
-    window = SDL_CreateWindow("DOOM", 0, 0, 2000, 1000, SDL_WINDOW_SHOWN);
+    ImageLoader::init();
+
+    window = SDL_CreateWindow("DOOM", 0, 0, SCREEN_WIDTH * 2, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
-    // Crear una instancia de Raycaster y cargar el mapa
-    Raycaster raycaster(renderer);
-    raycaster.loadMap("/Users/jime/Uvgcoding/graphics/Proyecto2_GS/src/map.txt"); // Reemplaza con la ruta a tu archivo de mapa
+    ImageLoader::loadImage("+", "../assets/wall3.png");
+    ImageLoader::loadImage("-", "../assets/wall1.png");
+    ImageLoader::loadImage("|", "../assets/wall2.png");
+    ImageLoader::loadImage("*", "../assets/wall4.png");
+    ImageLoader::loadImage("g", "../assets/wall5.png");
+
+    Raycaster r = { renderer };
+    r.load_map("../assets/map.txt");
 
     bool running = true;
-    while (running) {
+    int speed = 10;
+    while(running) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
@@ -32,39 +56,33 @@ int main() {
                 break;
             }
             if (event.type == SDL_KEYDOWN) {
-                if (event.key.keysym.sym == SDLK_ESCAPE) {
-                    running = false;
-                    break;
-                }
-                if (event.key.keysym.sym == SDLK_DOWN) {
-                    raycaster.player.x += cos(raycaster.player.a) * 5;
-                    raycaster.player.y += sin(raycaster.player.a) * 5;
-                }
-                if (event.key.keysym.sym == SDLK_UP) {
-                    raycaster.player.x -= cos(raycaster.player.a) * 5;
-                    raycaster.player.y -= sin(raycaster.player.a) * 5;
-                }
-                if (event.key.keysym.sym == SDLK_a) {
-                    raycaster.player.x += cos(raycaster.player.a - M_PI / 2) * 5;
-                    raycaster.player.y += sin(raycaster.player.a - M_PI / 2) * 5;
-                }
-                if (event.key.keysym.sym == SDLK_d) {
-                    raycaster.player.x += cos(raycaster.player.a + M_PI / 2) * 5;
-                    raycaster.player.y += sin(raycaster.player.a + M_PI / 2) * 5;
-                }
-                if (event.key.keysym.sym == SDLK_LEFT) {
-                    raycaster.player.a -= 0.1;
-                }
-                if (event.key.keysym.sym == SDLK_RIGHT) {
-                    raycaster.player.a += 0.1;
+                switch(event.key.keysym.sym ){
+                    case SDLK_LEFT:
+                        r.player.a += 3.14/24;
+                        break;
+                    case SDLK_RIGHT:
+                        r.player.a -= 3.14/24;
+                        break;
+                    case SDLK_UP:
+                        r.player.x += speed * cos(r.player.a);
+                        r.player.y += speed * sin(r.player.a);
+                        break;
+                    case SDLK_DOWN:
+                        r.player.x -= speed * cos(r.player.a);
+                        r.player.y -= speed * sin(r.player.a);
+                        break;
+                    default:
+                        break;
                 }
             }
         }
 
         clear();
+        draw_floor();
 
-        // Renderizar el raycaster
-        raycaster.render();
+        r.render();
+
+        // render
 
         SDL_RenderPresent(renderer);
     }
