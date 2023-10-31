@@ -3,13 +3,15 @@
 #include <SDL_render.h>
 #include <SDL_video.h>
 #include <print.h>
-
+#include <sstream>
 #include "color.h"
 #include "imageloader.h"
 #include "rc.h"
 
 SDL_Window* window;
 SDL_Renderer* renderer;
+const int FRAME_DELAY = 1000 / 40;  // 1000 ms (1 second) divided by 30 (for 30 FPS)
+Uint32 frameStart, frameTime;
 
 void clear() {
     SDL_SetRenderDrawColor(renderer, 56, 56, 56, 255);
@@ -18,12 +20,12 @@ void clear() {
 
 void draw_floor() {
     // floor color
-    SDL_SetRenderDrawColor(renderer, 112, 122, 122, 255);
+    SDL_SetRenderDrawColor(renderer, 0, 120, 0, 0);
     SDL_Rect rect = {
-            SCREEN_WIDTH,
-            SCREEN_HEIGHT / 2,
-            SCREEN_WIDTH,
-            SCREEN_HEIGHT / 2
+            0,                        // x start point
+            SCREEN_HEIGHT / 2,        // y start point
+            SCREEN_WIDTH,             // full width
+            SCREEN_HEIGHT          // half height
     };
     SDL_RenderFillRect(renderer, &rect);
 }
@@ -34,7 +36,7 @@ int main() {
     SDL_Init(SDL_INIT_VIDEO);
     ImageLoader::init();
 
-    window = SDL_CreateWindow("DOOM", 0, 0, SCREEN_WIDTH * 2, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+    window = SDL_CreateWindow("DOOM", 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT + MINIMAP_WIDTH *1.5, SDL_WINDOW_SHOWN);
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
     ImageLoader::loadImage("+", "../assets/wall3.png");
@@ -43,6 +45,7 @@ int main() {
     ImageLoader::loadImage("*", "../assets/wall4.png");
     ImageLoader::loadImage("g", "../assets/wall5.png");
 
+
     Raycaster r = { renderer };
     r.load_map("../assets/map.txt");
 
@@ -50,31 +53,42 @@ int main() {
     int speed = 10;
     while(running) {
         SDL_Event event;
+        frameStart = SDL_GetTicks();
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                 running = false;
                 break;
             }
             if (event.type == SDL_KEYDOWN) {
-                switch(event.key.keysym.sym ){
+                switch (event.key.keysym.sym) {
                     case SDLK_LEFT:
-                        r.player.a += 3.14/24;
+                        r.player.a += 3.14 / 24;
                         break;
                     case SDLK_RIGHT:
-                        r.player.a -= 3.14/24;
+                        r.player.a -= 3.14 / 24;
                         break;
                     case SDLK_UP:
-                        r.player.x += speed * cos(r.player.a);
-                        r.player.y += speed * sin(r.player.a);
+                        r.movePlayer(speed * cos(r.player.a), speed * sin(r.player.a));
                         break;
                     case SDLK_DOWN:
-                        r.player.x -= speed * cos(r.player.a);
-                        r.player.y -= speed * sin(r.player.a);
+                        r.movePlayer(-speed * cos(r.player.a), -speed * sin(r.player.a));
                         break;
                     default:
                         break;
                 }
             }
+
+
+            frameTime = SDL_GetTicks() - frameStart;
+
+            if (FRAME_DELAY > frameTime) {
+                SDL_Delay(FRAME_DELAY - frameTime);
+            }
+
+            // Calculate frames per second and update window title
+            std::ostringstream titleStream;
+            titleStream << "FPS: " << 1000.0 / (SDL_GetTicks() - frameStart);  // Milliseconds to seconds
+            SDL_SetWindowTitle(window, titleStream.str().c_str());
         }
 
         clear();

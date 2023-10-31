@@ -22,6 +22,10 @@ const int BLOCK = 50;
 const int SCREEN_WIDTH = WIDTH * BLOCK;
 const int SCREEN_HEIGHT = HEIGHT * BLOCK;
 
+//mini mapa
+const int MINIMAP_SCALE = 6;  // Escala del minimapa en relación con el tamaño del bloque
+const int MINIMAP_WIDTH = WIDTH * BLOCK / MINIMAP_SCALE;
+
 
 struct Player {
     int x;
@@ -65,11 +69,30 @@ public:
         SDL_RenderDrawPoint(renderer, x, y);
     }
 
-    void rect(int x, int y, const std::string& mapHit) {
-        for(int cx = x; cx < x + BLOCK; cx++) {
-            for(int cy = y; cy < y + BLOCK; cy++) {
-                int tx = ((cx - x) * tsize) / BLOCK;
-                int ty = ((cy - y) * tsize) / BLOCK;
+    bool isWallCollision(int newX, int newY) {
+        int i = newX / BLOCK;
+        int j = newY / BLOCK;
+        return map[j][i] != ' ';
+    }
+
+    void movePlayer(float deltaX, float deltaY) {
+        int newX = player.x + deltaX;
+        int newY = player.y + deltaY;
+
+        if (!isWallCollision(newX, player.y)) {
+            player.x = newX;
+        }
+
+        if (!isWallCollision(player.x, newY)) {
+            player.y = newY;
+        }
+    }
+
+    void rect(int x, int y, const std::string& mapHit, int scale = 1) {
+        for(int cx = x; cx < x + BLOCK / scale; cx++) {
+            for(int cy = y; cy < y + BLOCK / scale; cy++) {
+                int tx = ((cx - x) * tsize * scale) / BLOCK;
+                int ty = ((cy - y) * tsize * scale) / BLOCK;
 
                 Color c = ImageLoader::getPixelColor(mapHit, tx, ty);
                 SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b , 255);
@@ -109,7 +132,7 @@ public:
                 break;
             }
 
-            point(x, y, W);
+            //point(x, y, W);
 
             d += 1;
         }
@@ -130,45 +153,43 @@ public:
     }
 
     void render() {
-
-        // draw left side of the screen
-
-        for (int x = 0; x < SCREEN_WIDTH; x += BLOCK) {
-            for (int y = 0; y < SCREEN_HEIGHT; y += BLOCK) {
+        for (int x = 0; x < WIDTH * BLOCK; x += BLOCK) {
+            for (int y = 0; y < HEIGHT * BLOCK; y += BLOCK) {
                 int i = static_cast<int>(x / BLOCK);
                 int j = static_cast<int>(y / BLOCK);
 
                 if (map[j][i] != ' ') {
-                    std::string mapHit;
-                    mapHit = map[j][i];
-                    Color c = Color(255, 0, 0);
-                    rect(x, y, mapHit);
+                    std::string mapHit(1, map[j][i]);
+
+                    // Ajusta las coordenadas x y y para mover el minimapa a la esquina inferior derecha
+                    int drawX = SCREEN_WIDTH - MINIMAP_WIDTH + x / MINIMAP_SCALE;
+                    int drawY = SCREEN_HEIGHT*1.4 - MINIMAP_WIDTH + y / MINIMAP_SCALE;
+
+                    rect(drawX, drawY, mapHit, MINIMAP_SCALE);
                 }
             }
         }
 
-        for (int i = 1; i < SCREEN_WIDTH; i++) {
-            float a = player.a + player.fov / 2 - player.fov * i / SCREEN_WIDTH;
-            cast_ray(a);
-        }
+        // Represent the player in the minimap
+        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+        SDL_Rect rect = {
+                SCREEN_WIDTH - MINIMAP_WIDTH + player.x / MINIMAP_SCALE - 2,
+                static_cast<int>(SCREEN_HEIGHT*1.4 - MINIMAP_WIDTH + player.y / MINIMAP_SCALE - 2),
+                4,
+                4
+        };
+        SDL_RenderFillRect(renderer, &rect);
 
-        // draw right side of the screen
 
-        for (int i = 1; i < SCREEN_WIDTH; i++) {
+        // draw the main screen (first-person view)
+        for (int i = 0; i < SCREEN_WIDTH; i++) {
             double a = player.a + player.fov / 2.0 - player.fov * i / SCREEN_WIDTH;
             Impact impact = cast_ray(a);
             float d = impact.d;
-            Color c = Color(255, 0, 0);
-
-            if (d == 0) {
-                print("you lose");
-                exit(1);
-            }
-            int x = SCREEN_WIDTH + i;
+            int x = i;
             float h = static_cast<float>(SCREEN_HEIGHT)/static_cast<float>(d) * static_cast<float>(scale);
             draw_stake(x, h, impact);
         }
-
     }
 
     Player player;
