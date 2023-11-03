@@ -27,6 +27,12 @@ const int MINIMAP_SCALE = 6;  // Escala del minimapa en relación con el tamaño
 const int MINIMAP_WIDTH = WIDTH * BLOCK / MINIMAP_SCALE;
 
 
+SDL_AudioSpec goalSpec;
+Uint32 goalLength;
+Uint8 *goalBuffer;
+SDL_AudioDeviceID goalDevice;
+
+
 struct Player {
     int x;
     int y;
@@ -64,6 +70,7 @@ public:
         file.close();
     }
 
+
     void point(int x, int y, Color c) {
         SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, c.a);
         SDL_RenderDrawPoint(renderer, x, y);
@@ -74,6 +81,8 @@ public:
         int j = newY / BLOCK;
         return map[j][i] != ' ';
     }
+
+
 
     void movePlayer(float deltaX, float deltaY) {
         int newX = player.x + deltaX;
@@ -86,7 +95,18 @@ public:
         if (!isWallCollision(player.x, newY)) {
             player.y = newY;
         }
+
+        // Comprobar si el jugador ha llegado a la meta
+        if (map[newY / BLOCK][newX / BLOCK] == 'g') {
+            // Reproducir el efecto de sonido de la meta
+            if (goalDevice != 0) {
+                SDL_ClearQueuedAudio(goalDevice);
+                SDL_QueueAudio(goalDevice, goalBuffer, goalLength);
+                SDL_PauseAudioDevice(goalDevice, 0);
+            }
+        }
     }
+
 
     void rect(int x, int y, const std::string& mapHit, int scale = 1) {
         for(int cx = x; cx < x + BLOCK / scale; cx++) {
@@ -132,8 +152,6 @@ public:
                 break;
             }
 
-            //point(x, y, W);
-
             d += 1;
         }
         return Impact{d, mapHit, tx};
@@ -152,6 +170,20 @@ public:
         }
     }
 
+    void switchSprite() {
+        sprite = !sprite;
+    }
+
+    void drawPlayerSprite() {
+        std::string spriteKey = sprite ? "player_alt" : "player";
+        int spriteX = SCREEN_WIDTH / 2 - 32; // Center of screen width-wise, adjust as needed
+        int spriteY = SCREEN_HEIGHT + 90;    // Bottom of the screen, adjust as needed
+        ImageLoader::render(renderer, spriteKey, spriteX, spriteY);
+    }
+
+
+
+
     void render() {
         for (int x = 0; x < WIDTH * BLOCK; x += BLOCK) {
             for (int y = 0; y < HEIGHT * BLOCK; y += BLOCK) {
@@ -163,7 +195,7 @@ public:
 
                     // Ajusta las coordenadas x y y para mover el minimapa a la esquina inferior derecha
                     int drawX = SCREEN_WIDTH - MINIMAP_WIDTH + x / MINIMAP_SCALE;
-                    int drawY = SCREEN_HEIGHT*1.4 - MINIMAP_WIDTH + y / MINIMAP_SCALE;
+                    int drawY = SCREEN_HEIGHT+230 - MINIMAP_WIDTH + y / MINIMAP_SCALE;
 
                     rect(drawX, drawY, mapHit, MINIMAP_SCALE);
                 }
@@ -174,7 +206,7 @@ public:
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
         SDL_Rect rect = {
                 SCREEN_WIDTH - MINIMAP_WIDTH + player.x / MINIMAP_SCALE - 2,
-                static_cast<int>(SCREEN_HEIGHT*1.4 - MINIMAP_WIDTH + player.y / MINIMAP_SCALE - 2),
+                static_cast<int>(SCREEN_HEIGHT+230 - MINIMAP_WIDTH + player.y / MINIMAP_SCALE - 2),
                 4,
                 4
         };
@@ -198,4 +230,5 @@ private:
     SDL_Renderer* renderer;
     std::vector<std::string> map;
     int tsize;
+    bool sprite;
 };

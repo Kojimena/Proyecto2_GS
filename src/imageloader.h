@@ -13,7 +13,7 @@ private:
 public:
     // Initialize SDL_image
     static void init() {
-        int imgFlags = IMG_INIT_PNG; // or IMG_INIT_JPG, depending on your needs
+        int imgFlags = IMG_INIT_PNG;
         if (!(IMG_Init(imgFlags) & imgFlags)) {
             throw std::runtime_error("SDL_image could not initialize! SDL_image Error: " + std::string(IMG_GetError()));
         }
