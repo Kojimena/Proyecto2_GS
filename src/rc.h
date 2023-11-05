@@ -23,7 +23,7 @@ const int SCREEN_WIDTH = WIDTH * BLOCK;
 const int SCREEN_HEIGHT = HEIGHT * BLOCK;
 
 //mini mapa
-const int MINIMAP_SCALE = 6;  // Escala del minimapa en relación con el tamaño del bloque
+const int MINIMAP_SCALE = 6;  // Escala del minimapa
 const int MINIMAP_WIDTH = WIDTH * BLOCK / MINIMAP_SCALE;
 
 
@@ -95,10 +95,9 @@ public:
         if (!isWallCollision(player.x, newY)) {
             player.y = newY;
         }
-
-        // Comprobar si el jugador ha llegado a la meta
         if (map[newY / BLOCK][newX / BLOCK] == 'g') {
-            // Reproducir el efecto de sonido de la meta
+            //efecto de sonido de la meta
+            std::cout << "Goal!" << std::endl;
             if (goalDevice != 0) {
                 SDL_ClearQueuedAudio(goalDevice);
                 SDL_QueueAudio(goalDevice, goalBuffer, goalLength);
@@ -176,12 +175,10 @@ public:
 
     void drawPlayerSprite() {
         std::string spriteKey = sprite ? "player_alt" : "player";
-        int spriteX = SCREEN_WIDTH / 2 - 32; // Center of screen width-wise, adjust as needed
-        int spriteY = SCREEN_HEIGHT + 90;    // Bottom of the screen, adjust as needed
+        int spriteX = SCREEN_WIDTH / 2 - 32;
+        int spriteY = SCREEN_HEIGHT + 90;
         ImageLoader::render(renderer, spriteKey, spriteX, spriteY);
     }
-
-
 
 
     void render() {
@@ -193,7 +190,7 @@ public:
                 if (map[j][i] != ' ') {
                     std::string mapHit(1, map[j][i]);
 
-                    // Ajusta las coordenadas x y y para mover el minimapa a la esquina inferior derecha
+                    // minimapa en la esquina inferior derecha
                     int drawX = SCREEN_WIDTH - MINIMAP_WIDTH + x / MINIMAP_SCALE;
                     int drawY = SCREEN_HEIGHT+230 - MINIMAP_WIDTH + y / MINIMAP_SCALE;
 
@@ -202,7 +199,7 @@ public:
             }
         }
 
-        // Represent the player in the minimap
+        // minimap
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
         SDL_Rect rect = {
                 SCREEN_WIDTH - MINIMAP_WIDTH + player.x / MINIMAP_SCALE - 2,
@@ -213,7 +210,7 @@ public:
         SDL_RenderFillRect(renderer, &rect);
 
 
-        // draw the main screen (first-person view)
+        // pantalla principal
         for (int i = 0; i < SCREEN_WIDTH; i++) {
             double a = player.a + player.fov / 2.0 - player.fov * i / SCREEN_WIDTH;
             Impact impact = cast_ray(a);

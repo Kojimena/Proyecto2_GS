@@ -1,16 +1,12 @@
 #include <SDL2/SDL.h>
-#include <SDL_events.h>
-#include <SDL_render.h>
-#include <SDL_video.h>
 #include <print.h>
 #include <sstream>
-#include "color.h"
 #include "imageloader.h"
 #include "rc.h"
 
 SDL_Window* window;
 SDL_Renderer* renderer;
-const int FRAME_DELAY = 1000 / 40;  // 1000 ms (1 second) divided by 30 (for 30 FPS)
+const int FRAME_DELAY = 1000 / 40;
 Uint32 frameStart, frameTime;
 SDL_AudioSpec wavSpec;
 Uint32 wavLength;
@@ -52,8 +48,28 @@ int main() {
     SDL_Init(SDL_INIT_VIDEO);
     ImageLoader::init();
 
+
     window = SDL_CreateWindow("DOOM", 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT + MINIMAP_WIDTH *1.5, SDL_WINDOW_SHOWN);
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
+    // Imagen de bienvenida
+    SDL_Texture* welcomeImage = IMG_LoadTexture(renderer, "../assets/welcome.png");
+    if (!welcomeImage) {
+        fprintf(stderr, "Failed to load welcome image: %s\n", IMG_GetError());
+        // Limpieza en caso de que la imagen no se pueda cargar
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        IMG_Quit();
+        SDL_Quit();
+        return 1;
+    }
+    SDL_RenderClear(renderer);
+    SDL_RenderCopy(renderer, welcomeImage, NULL, NULL);  // Renderizar en toda la pantalla
+    SDL_RenderPresent(renderer);
+
+    // Liberaración de textura
+    SDL_DestroyTexture(welcomeImage);
+
 
     ImageLoader::loadImage("+", "../assets/wall3.png");
     ImageLoader::loadImage("-", "../assets/wall1.png");
@@ -67,7 +83,7 @@ int main() {
     Raycaster r = { renderer };
     r.load_map("../assets/map.txt");
 
-    // Cargar y reproducir el archivo WAV
+    //Cargas de sonido
     if (SDL_LoadWAV("../assets/first.wav", &wavSpec, &wavBuffer, &wavLength) == NULL) {
         fprintf(stderr, "Could not open test.wav: %s\n", SDL_GetError());
     } else {
@@ -80,7 +96,6 @@ int main() {
         }
     }
 
-    // Cargar el efecto de sonido
     if (SDL_LoadWAV("../assets/fireball.wav", &effectSpec, &effectBuffer, &effectLength) == NULL) {
         fprintf(stderr, "Could not open switch.wav: %s\n", SDL_GetError());
     } else {
@@ -90,7 +105,6 @@ int main() {
         }
     }
 
-    // Cargar el efecto de sonido de la meta
     if (SDL_LoadWAV("../assets/goal.wav", &goalSpec, &goalBuffer, &goalLength) == NULL) {
         fprintf(stderr, "Could not open goal.wav: %s\n", SDL_GetError());
     } else {
@@ -111,6 +125,10 @@ int main() {
                 running = false;
                 break;
             }
+            if (event.type == SDL_MOUSEMOTION) {
+                const float sensitivity = -0.005f;
+                r.player.a += event.motion.xrel * sensitivity;
+            }
             if (event.type == SDL_KEYDOWN) {
                 switch (event.key.keysym.sym) {
                     case SDLK_LEFT:
@@ -121,7 +139,6 @@ int main() {
                         break;
                     case SDLK_SPACE:
                         r.switchSprite();
-                        // Reproducir el efecto de sonido
                         if (effectDevice != 0) {
                             SDL_ClearQueuedAudio(effectDevice);
                             SDL_QueueAudio(effectDevice, effectBuffer, effectLength);
@@ -155,6 +172,8 @@ int main() {
         clear();
         draw_floor();
 
+
+
         r.render();
         r.drawPlayerSprite();
 
@@ -162,6 +181,7 @@ int main() {
         SDL_RenderPresent(renderer);
 
     }
+
 
     // Limpieza del audio
     if (deviceId != 0) {
@@ -178,8 +198,6 @@ int main() {
         SDL_FreeWAV(effectBuffer);
     }
 
-
-    // Limpieza del audio de la meta
     if (goalDevice != 0) {
         SDL_CloseAudioDevice(goalDevice);
     }
@@ -191,8 +209,7 @@ int main() {
     SDL_DestroyWindow(window);
     SDL_Quit();
 
-    return 0;
+    IMG_Quit();
 
-    SDL_DestroyWindow(window);
-    SDL_Quit();
+    return 0;
 }
