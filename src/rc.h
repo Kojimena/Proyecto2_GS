@@ -32,12 +32,12 @@ struct Player {
     int y;
     float a;
     float fov;
-    bool gameWon; // Nuevo estado de juego
+    bool gameWon;
 };
 
 struct Impact {
     float d;
-    std::string mapHit;  // + | -
+    std::string mapHit;
     int tx;
 };
 
@@ -54,7 +54,7 @@ public:
 
         scale = 50;
         tsize = 128;
-        player.gameWon = false; // Nuevo estado de juego
+        player.gameWon = false;
 
     }
 
@@ -93,9 +93,9 @@ public:
             player.y = newY;
         }
         if (map[newY / BLOCK][newX / BLOCK] == 'g') {
-            //efecto de sonido de la meta
+            //efecto de sonido de la meta y juego ganado
             std::cout << "Goal!" << std::endl;
-            player.gameWon = true; // Establecer el estado del juego a ganado
+            player.gameWon = true;
 
         }
     }

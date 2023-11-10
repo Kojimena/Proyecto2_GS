@@ -270,13 +270,13 @@ int main() {
     SDL_DestroyWindow(window);
 
     // Cleanup at the end
-    TTF_CloseFont(font); // Close the font
-    SDL_DestroyTexture(texture); // Destroy the texture
-    SDL_FreeSurface(surface); // Free the surface
-    SDL_DestroyRenderer(renderer); // Destroy the renderer
-    SDL_DestroyWindow(window); // Destroy the window
-    TTF_Quit(); // Quit SDL_ttf
-    SDL_Quit(); // Quit SDL
+    TTF_CloseFont(font);
+    SDL_DestroyTexture(texture);
+    SDL_FreeSurface(surface);
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    TTF_Quit();
+    SDL_Quit(); 
 
     IMG_Quit();
 
