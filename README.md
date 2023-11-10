@@ -25,9 +25,9 @@ Se puede ver el juego en acción en este [video](https://drive.google.com/file/d
 - **Sistema de colisiones**: El juego detecta colisiones con paredes y otros obstáculos en el mapa.
 - **Control de teclado y mouse**: Los jugadores pueden usar el teclado para moverse y el mouse para girar.
 - **Efectos de sonido**: Incluye efectos de sonido para las acciones del jugador y el ambiente del juego.
+- **Pantallas**: Implementa pantalla de bienvenida y de you win cuando se ha ganado.
 - **Minimapa**: Se muestra un minimapa para ayudar en la navegación.
 - **Raycasting**: Implementa un sistema de raycasting básico para renderizar las vistas en primera persona.
-
 
 ## Instalación
 
