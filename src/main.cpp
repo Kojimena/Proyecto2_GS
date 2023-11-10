@@ -3,10 +3,11 @@
 #include <sstream>
 #include "imageloader.h"
 #include "rc.h"
+#include "SDL_ttf.h"
 
 SDL_Window* window;
 SDL_Renderer* renderer;
-const int FRAME_DELAY = 1000 / 40;
+const int FRAME_DELAY = 1000/25;
 Uint32 frameStart, frameTime;
 SDL_AudioSpec wavSpec;
 Uint32 wavLength;
@@ -17,6 +18,12 @@ SDL_AudioSpec effectSpec;
 Uint32 effectLength;
 Uint8 *effectBuffer;
 SDL_AudioDeviceID effectDevice;
+
+
+SDL_AudioSpec goalSpec;
+Uint32 goalLength;
+Uint8 *goalBuffer;
+SDL_AudioDeviceID goalDevice;
 
 
 void clear() {
@@ -46,11 +53,33 @@ int main() {
     }
 
     SDL_Init(SDL_INIT_VIDEO);
+    TTF_Init();
     ImageLoader::init();
 
 
     window = SDL_CreateWindow("DOOM", 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT + MINIMAP_WIDTH *1.5, SDL_WINDOW_SHOWN);
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
+    // Inicializar SDL_ttf
+    TTF_Font * font = TTF_OpenFont("../assets/font.ttf", 25);
+    if (!font) {
+        fprintf(stderr, "Failed to load font: %s\n", TTF_GetError());
+        // Clean up SDL and exit
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        TTF_Quit();
+        SDL_Quit();
+        return 1;
+    }
+    SDL_Color color = { 255, 255, 255 };
+    SDL_Surface * surface = TTF_RenderText_Solid(font,
+                                                 "Welcome to komario", color);
+    SDL_Texture * texture = SDL_CreateTextureFromSurface(renderer, surface);
+
+    int texW = 0;
+    int texH = 0;
+    SDL_QueryTexture(texture, NULL, NULL, &texW, &texH);
+    SDL_Rect dstrect = { 200, 0, texW, texH };
 
     // Imagen de bienvenida
     SDL_Texture* welcomeImage = IMG_LoadTexture(renderer, "../assets/welcome.png");
@@ -69,6 +98,7 @@ int main() {
 
     // Liberaración de textura
     SDL_DestroyTexture(welcomeImage);
+
 
 
     ImageLoader::loadImage("+", "../assets/wall3.png");
@@ -117,7 +147,7 @@ int main() {
 
     bool running = true;
     int speed = 10;
-    while(running) {
+    while(running && !r.player.gameWon) {
         SDL_Event event;
         frameStart = SDL_GetTicks();
         while (SDL_PollEvent(&event)) {
@@ -167,26 +197,57 @@ int main() {
             std::ostringstream titleStream;
             titleStream << "FPS: " << 1000.0 / (SDL_GetTicks() - frameStart);  // Milliseconds to seconds
             SDL_SetWindowTitle(window, titleStream.str().c_str());
+
         }
 
         clear();
         draw_floor();
 
-
-
         r.render();
         r.drawPlayerSprite();
 
-
+        SDL_RenderCopy(renderer, texture, NULL, &dstrect);
         SDL_RenderPresent(renderer);
 
     }
 
+    if (r.player.gameWon) {
+        // Renderizar mensaje de victoria
+        if (goalDevice != 0) {
+            SDL_ClearQueuedAudio(goalDevice);
+            SDL_QueueAudio(goalDevice, goalBuffer, goalLength);
+            SDL_PauseAudioDevice(goalDevice, 0);
+        }
 
-    // Limpieza del audio
-    if (deviceId != 0) {
-        SDL_CloseAudioDevice(deviceId);
+        //quitamos el audio de fondo
+        if (deviceId != 0) {
+            SDL_ClearQueuedAudio(deviceId);
+            SDL_PauseAudioDevice(deviceId, 1);
+            SDL_CloseAudioDevice(deviceId);
+
+        }
+
+        SDL_Color winColor = {255, 255, 0}; // Amarillo
+        SDL_Surface* winSurface = TTF_RenderText_Solid(font, "You Win!", winColor);
+        SDL_Texture* winTexture = SDL_CreateTextureFromSurface(renderer, winSurface);
+        int winTexW = 0;
+        int winTexH = 0;
+        SDL_QueryTexture(winTexture, NULL, NULL, &winTexW, &winTexH);
+        SDL_Rect winRect = {SCREEN_WIDTH/2 - winTexW/2, SCREEN_HEIGHT/2 - winTexH/2, winTexW, winTexH};
+
+        SDL_RenderClear(renderer);
+        SDL_RenderCopy(renderer, winTexture, NULL, &winRect);
+        SDL_RenderPresent(renderer);
+
+        // Pausar para que el mensaje sea visible
+        SDL_Delay(4000); // Espera 5 segundos
+
+        // Limpieza de recursos del mensaje de victoria
+        SDL_DestroyTexture(winTexture);
+        SDL_FreeSurface(winSurface);
     }
+
+
     if (wavBuffer != NULL) {
         SDL_FreeWAV(wavBuffer);
     }
@@ -207,7 +268,15 @@ int main() {
 
     // Limpieza de SDL
     SDL_DestroyWindow(window);
-    SDL_Quit();
+
+    // Cleanup at the end
+    TTF_CloseFont(font); // Close the font
+    SDL_DestroyTexture(texture); // Destroy the texture
+    SDL_FreeSurface(surface); // Free the surface
+    SDL_DestroyRenderer(renderer); // Destroy the renderer
+    SDL_DestroyWindow(window); // Destroy the window
+    TTF_Quit(); // Quit SDL_ttf
+    SDL_Quit(); // Quit SDL
 
     IMG_Quit();
 

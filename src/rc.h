@@ -27,17 +27,12 @@ const int MINIMAP_SCALE = 6;  // Escala del minimapa
 const int MINIMAP_WIDTH = WIDTH * BLOCK / MINIMAP_SCALE;
 
 
-SDL_AudioSpec goalSpec;
-Uint32 goalLength;
-Uint8 *goalBuffer;
-SDL_AudioDeviceID goalDevice;
-
-
 struct Player {
     int x;
     int y;
     float a;
     float fov;
+    bool gameWon; // Nuevo estado de juego
 };
 
 struct Impact {
@@ -59,6 +54,8 @@ public:
 
         scale = 50;
         tsize = 128;
+        player.gameWon = false; // Nuevo estado de juego
+
     }
 
     void load_map(const std::string& filename) {
@@ -98,11 +95,8 @@ public:
         if (map[newY / BLOCK][newX / BLOCK] == 'g') {
             //efecto de sonido de la meta
             std::cout << "Goal!" << std::endl;
-            if (goalDevice != 0) {
-                SDL_ClearQueuedAudio(goalDevice);
-                SDL_QueueAudio(goalDevice, goalBuffer, goalLength);
-                SDL_PauseAudioDevice(goalDevice, 0);
-            }
+            player.gameWon = true; // Establecer el estado del juego a ganado
+
         }
     }
 

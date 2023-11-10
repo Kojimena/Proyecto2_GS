@@ -8,15 +8,16 @@ Se puede ver el juego en acción en este [video]().
 
 ## Puntos cumplidos
 
-- (30 puntos) [Criterio subjetivo] Según la estética de su nivel
-- (10 puntos) por mantener al menos 30 fps constantemente (los fps se deben desplegar)
-- (20 puntos) Por implementar una cámara con movimiento hacia delante y hacia atrás y rotación
-- (10 puntos) Por implementar un minimapa que muestre la posición de jugador en el mundo. No puede estar lado a lado del mapa principal, debe estar en una esquina. 
+- (0 a 30 puntos) [Criterio subjetivo] Según la estética de su nivel
+- (15 puntos) por mantener al rededor de 15 fps (los fps se deben desplegar)
+- (20 puntos) Por implementar una cámara con movimiento hacia delante y hacia atrás y rotación 
+- 10 puntos más por implementar rotación con el mouse (solo horizontal)
+- (10 puntos) Por implementar un minimapa que muestre la posición de jugador en el mundo. No puede estar lado a lado del mapa principal, debe estar en una esquina.
+- (5 puntos) Por agregar música de fondo.
 - (10 puntos) Por agregar efectos de sonido
 - (20 puntos) Por agregar al menos 1 animación a alguna sprite en la pantalla
-- (5 puntos) Por agregar música de fondo.
-- 10 puntos más por implementar rotación con el mouse (solo horizontal)
 - (5 puntos) Por agregar una pantalla de bienvenida
+- (10 puntos) Por agregar una pantalla de exito cuando se cumpla una condicion en el nivel
 
 ## Características
 
